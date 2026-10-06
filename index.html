@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>중1 영어 단어 시험</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f1f5f9;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between">
+
+    <div id="modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-all border border-slate-200">
+            <h3 id="modal-title" class="text-xl font-bold text-slate-800 mb-2">알림</h3>
+            <p id="modal-message" class="text-slate-600 mb-6 text-base leading-relaxed">내용을 확인해주세요.</p>
+            <div id="modal-actions" class="flex justify-end gap-3">
+                <button id="modal-confirm-btn" onclick="closeModal()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition cursor-pointer">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN CONTAINER -->
+    <div class="max-w-4xl mx-auto w-full p-4 sm:p-6 flex-grow">
+
+        <div id="screen-start" class="flex flex-col items-center justify-center min-h-[80vh] py-10">
+            <div class="w-full max-w-xl bg-white p-8 sm:p-12 rounded-3xl shadow-xl border-2 border-slate-200 text-center">
+                <span class="inline-block px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-bold mb-4">중학교 1학년 영어</span>
+                <h1 class="text-3xl sm:text-4xl font-black text-slate-800 mb-3 tracking-tight">랜덤 단어 시험지</h1>
+                <p class="text-slate-500 mb-8 text-base">70개의 필수 단어 중 무작위 20문제가 출제됩니다.<br>이름을 입력하고 시험을 시작하세요!</p>
+                
+                <form onsubmit="handleStartTest(event)" class="space-y-6">
+                    <div class="text-left">
+                        <label for="student-name-input" class="block text-slate-700 font-bold mb-2 text-lg">학생 이름</label>
+                        <input type="text" id="student-name-input" placeholder="이름을 입력하세요 (예: 홍길동)" 
+                            class="w-full text-xl px-5 py-4 rounded-2xl border-2 border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition font-semibold"
+                            autocomplete="off">
+                    </div>
+                    <button type="submit" 
+                        class="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white text-2xl font-black rounded-2xl shadow-lg hover:shadow-blue-200 hover:-translate-y-0.5 active:translate-y-0 transition cursor-pointer">
+                        시작하기 🚀
+                    </button>
+                </form>
+
+                <div class="mt-8 pt-6 border-t border-slate-100 text-xs text-slate-400 flex justify-center gap-4">
+                    <span>총 20문항 (100점)</span>
+                    <span>•</span>
+                    <span>객관식 10문항 + 주관식 10문항</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-quiz" class="hidden">
+            <!-- Sticky Header -->
+            <div class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm rounded-2xl p-4 mb-6">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
+                    <div class="flex items-center gap-3">
+                        <span class="text-2xl">📝</span>
+                        <div>
+                            <span id="quiz-student-display" class="font-bold text-lg text-slate-800">학생 이름</span>
+                            <span id="question-step-badge" class="text-xs font-black text-blue-600 bg-blue-50 border border-blue-200 px-2.5 py-0.5 rounded-full ml-2">1 / 20 문제</span>
+                        </div>
+                    </div>
+                    <button onclick="confirmSubmit()" class="w-full sm:w-auto px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm rounded-xl transition cursor-pointer">
+                        중도 제출하기 📤
+                    </button>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-slate-500 mb-1">
+                        <span>진행 상황</span>
+                        <span id="progress-text">1 / 20 문제 진행 중</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                        <div id="progress-bar" class="bg-blue-600 h-full w-0 transition-all duration-300"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Single Question Container -->
+            <div id="single-question-container" class="space-y-6 mb-8"></div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex justify-between items-center gap-3 pt-4 border-t border-slate-200">
+                <button id="btn-prev-q" onclick="prevQuestion()" class="px-5 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1">
+                    ⬅️ 이전 문제
+                </button>
+                <button id="btn-next-q" onclick="nextQuestion()" class="px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-lg rounded-xl transition shadow-md cursor-pointer flex items-center gap-1">
+                    다음 문제 ➡️
+                </button>
+            </div>
+        </div>
+
+        <div id="screen-result" class="hidden my-6">
+            <!-- Result Summary Card -->
+            <div class="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200 mb-8 text-center relative overflow-hidden">
+                <div id="result-badge-bg" class="absolute top-0 left-0 w-full h-3 bg-blue-600"></div>
+                <p class="text-slate-500 text-base font-semibold mb-1">단어 시험 결과보고서</p>
+                <h2 id="result-title" class="text-2xl sm:text-3xl font-black text-slate-800 mb-4">OOO 학생의 시험 결과</h2>
+                
+                <div class="inline-flex flex-col items-center justify-center p-6 bg-slate-50 rounded-2xl border border-slate-200 min-w-[220px] mb-6">
+                    <span class="text-sm font-bold text-slate-500 mb-1">최종 점수</span>
+                    <span id="result-score" class="text-5xl sm:text-6xl font-black text-blue-600">0점</span>
+                    <span id="result-detail-text" class="text-xs font-semibold text-slate-400 mt-2">20문제 중 0문제 정답 (100점 만점)</span>
+                    <div id="sheet-save-status" class="mt-3 text-xs font-semibold text-slate-500"></div>
+                </div>
+
+                <!-- Retry Container (Shown when score <= 50) -->
+                <div id="retry-box" class="hidden mb-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl">
+                    <p class="text-amber-800 font-bold text-sm mb-3">⚠️ 10문제 이하로 맞춰 재도전 대상입니다. 다시 도전해보세요!</p>
+                    <button onclick="retryTest()" class="px-8 py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-black text-lg rounded-xl transition shadow-lg cursor-pointer transform hover:-translate-y-0.5">
+                        🔄 재도전하기 (새 시험지)
+                    </button>
+                </div>
+
+                <div class="flex flex-wrap justify-center gap-3">
+                    <button onclick="restartTest()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition shadow-md cursor-pointer">
+                        🏠 처음 화면으로
+                    </button>
+                </div>
+            </div>
+
+            <!-- Answer Key & Breakdown -->
+            <div class="bg-white rounded-3xl p-6 sm:p-8 shadow-md border border-slate-200">
+                <h3 class="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2 pb-3 border-b border-slate-200">
+                    <span>🔍</span> 문제별 상세 채점 결과
+                </h3>
+                <div id="result-breakdown" class="space-y-4"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer class="py-6 text-center text-xs text-slate-400 border-t border-slate-200 bg-white">
+        중학교 1학년 영어 단어 평가 시스템 • 무작위 난수 기반 출제
+    </footer>
+
+    <script>
+        const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxFbqWJg2-Nu7eMQHw2uX1zeop8esnL_mjp_lPMwuynDHxtmUG2IBndNv4C6kIKZXagHA/exec";
+
+        const WORD_DATABASE = [
+            { en: "ship", ko: "(타는) 배" },
+            { en: "shoe", ko: "구두" },
+            { en: "lunch", ko: "점심" },
+            { en: "newspaper", ko: "신문" },
+            { en: "airplane", ko: "비행기" },
+            { en: "rain", ko: "비(가 오다)" },
+            { en: "land", ko: "땅[육지], 나라; 착륙하다" },
+            { en: "light", ko: "빛[불]; 밝은, 가벼운; 불을 붙이다" },
+            { en: "mind", ko: "마음; 언짢아하다" },
+            { en: "work", ko: "일[공부](하다), 작동하다; 작품" },
+            { en: "point", ko: "(요)점, 의견, 점수; 가리키다" },
+            { en: "thank", ko: "감사(하다)" },
+            { en: "take", ko: "데려[가져]가다, 필요로 하다, 받다, 잡다" },
+            { en: "learn", ko: "배우다" },
+            { en: "any", ko: "어떤 (것[사람]), 아무 (것)" },
+            { en: "last", ko: "지난, 마지막의; 계속되다" },
+            { en: "each", ko: "각각(의)" },
+            { en: "bad", ko: "나쁜" },
+            { en: "out", ko: "밖에[으로]" },
+            { en: "war", ko: "전쟁" },
+            { en: "habit", ko: "습관" },
+            { en: "space", ko: "공간, 우주" },
+            { en: "winter", ko: "겨울" },
+            { en: "science", ko: "과학" },
+            { en: "vacation", ko: "방학[휴가]" },
+            { en: "library", ko: "도서관" },
+            { en: "call", ko: "전화하다, 부르다; 통화, 부름" },
+            { en: "play", ko: "놀다, 연주하다; 연극" },
+            { en: "head", ko: "머리; 향해 가다" },
+            { en: "face", ko: "얼굴; 직면하다" },
+            { en: "need", ko: "필요(하다); 욕구" },
+            { en: "tell", ko: "말하다" },
+            { en: "meet", ko: "만나다" },
+            { en: "live", ko: "살다; 살아 있는" },
+            { en: "same", ko: "같은 (것[사람])" },
+            { en: "another", ko: "또 하나의 (것[사람]), 다른 (것[사람])" },
+            { en: "such", ko: "그러한, 그렇게[너무나]" },
+            { en: "well", ko: "잘; 건강한; 우물; 글쎄" },
+            { en: "nature", ko: "자연, 천성" },
+            { en: "dinner", ko: "저녁 식사" },
+            { en: "breakfast", ko: "아침 식사" },
+            { en: "information", ko: "정보" },
+            { en: "fish", ko: "물고기; 낚시질하다" },
+            { en: "care", ko: "돌봄, 주의, 관심을 갖다" },
+            { en: "store", ko: "가게; 비축[저장]하다" },
+            { en: "show", ko: "보여 주다; 쇼" },
+            { en: "study", ko: "공부[연구](하다)" },
+            { en: "smile", ko: "미소 (짓다)" },
+            { en: "watch", ko: "(지켜)보다; 시계" },
+            { en: "find", ko: "찾다[발견하다]" },
+            { en: "easy", ko: "쉬운" },
+            { en: "dear", ko: "사랑[친애]하는, 소중한" },
+            { en: "high", ko: "높은; 높이" },
+            { en: "really", ko: "진짜[정말]" },
+            { en: "door", ko: "문" },
+            { en: "spring", ko: "봄, 용수철, 샘" },
+            { en: "culture", ko: "문화" },
+            { en: "window", ko: "창(문)" },
+            { en: "afternoon", ko: "오후" },
+            { en: "homework", ko: "숙제" },
+            { en: "try", ko: "노력하다, 시도(하다)" },
+            { en: "visit", ko: "방문(하다)" },
+            { en: "ask", ko: "묻다, 부탁하다" },
+            { en: "enjoy", ko: "즐기다" },
+            { en: "clean", ko: "깨끗한; 청소하다" },
+            { en: "warm", ko: "따뜻한; 따뜻하게 하다" },
+            { en: "hot", ko: "더운[뜨거운], 매운" },
+            { en: "famous", ko: "유명한" },
+            { en: "every", ko: "모든, ~마다" },
+            { en: "also", ko: "~도" }
+        ];
+
+        let currentStudentName = "";
+        let generatedQuestions = [];
+        let userAnswers = {};
+        let currentQuestionIndex = 0;
+
+        function shuffleArray(array) {
+            const arr = [...array];
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        function showModal(title, message, showCancel = false, onConfirm = null) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-message').innerText = message;
+            
+            const actionsContainer = document.getElementById('modal-actions');
+            actionsContainer.innerHTML = '';
+
+            if (showCancel) {
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = "px-5 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl transition cursor-pointer";
+                cancelBtn.innerText = "취소";
+                cancelBtn.onclick = closeModal;
+                actionsContainer.appendChild(cancelBtn);
+            }
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = "px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition cursor-pointer";
+            confirmBtn.innerText = "확인";
+            confirmBtn.onclick = () => {
+                closeModal();
+                if (onConfirm) onConfirm();
+            };
+            actionsContainer.appendChild(confirmBtn);
+
+            document.getElementById('modal-backdrop').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-backdrop').classList.add('hidden');
+        }
+
+        function handleStartTest(e) {
+            e.preventDefault();
+            const input = document.getElementById('student-name-input');
+            const name = input.value.trim();
+
+            if (!name) {
+                showModal("이름 입력 필요", "시험을 시작하기 위해 이름을 작성해주세요!");
+                return;
+            }
+
+            currentStudentName = name;
+            startNewTest();
+        }
+
+        function startNewTest() {
+            generateTestSheet();
+            currentQuestionIndex = 0;
+
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-result').classList.add('hidden');
+            document.getElementById('screen-quiz').classList.remove('hidden');
+            document.getElementById('quiz-student-display').innerText = `${currentStudentName} 학생`;
+            
+            renderCurrentQuestion();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function generateTestSheet() {
+            userAnswers = {};
+            const shuffledWords = shuffleArray(WORD_DATABASE);
+            const selected20 = shuffledWords.slice(0, 20);
+
+            generatedQuestions = [];
+
+            selected20.forEach((wordObj, idx) => {
+                const qNum = idx + 1;
+                let qType = "";
+                let prompt = "";
+                let correctAnswer = "";
+                let options = [];
+
+                if (qNum <= 5) {
+                    qType = "mcq_en";
+                    prompt = wordObj.ko;
+                    correctAnswer = wordObj.en;
+                    options = generateOptions(wordObj, 'en');
+                } else if (qNum <= 10) {
+                    qType = "mcq_ko";
+                    prompt = wordObj.en;
+                    correctAnswer = wordObj.ko;
+                    options = generateOptions(wordObj, 'ko');
+                } else if (qNum <= 15) {
+                    qType = "sa_en";
+                    prompt = wordObj.ko;
+                    correctAnswer = wordObj.en;
+                } else {
+                    qType = "sa_ko";
+                    prompt = wordObj.en;
+                    correctAnswer = wordObj.ko;
+                }
+
+                generatedQuestions.push({
+                    number: qNum,
+                    type: qType,
+                    prompt: prompt,
+                    correctAnswer: correctAnswer,
+                    options: options,
+                    originalObj: wordObj
+                });
+            });
+        }
+
+        function generateOptions(targetWordObj, key) {
+            const correctVal = targetWordObj[key];
+            const otherWords = WORD_DATABASE.filter(w => w[key] !== correctVal);
+            const shuffledOthers = shuffleArray(otherWords);
+            
+            const distractors = shuffledOthers.slice(0, 3).map(w => w[key]);
+            return shuffleArray([correctVal, ...distractors]);
+        }
+
+        function renderCurrentQuestion() {
+            const container = document.getElementById('single-question-container');
+            container.innerHTML = "";
+
+            const q = generatedQuestions[currentQuestionIndex];
+            const qNum = q.number;
+
+            // Update Progress Header
+            document.getElementById('question-step-badge').innerText = `${qNum} / 20 문제`;
+            document.getElementById('progress-text').innerText = `${qNum} / 20 문제 진행 중`;
+            const percentage = (qNum / 20) * 100;
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+
+            // Update Nav Buttons
+            const btnPrev = document.getElementById('btn-prev-q');
+            btnPrev.disabled = (currentQuestionIndex === 0);
+
+            const btnNext = document.getElementById('btn-next-q');
+            if (currentQuestionIndex === 19) {
+                btnNext.innerHTML = `최종 제출하기 🏁`;
+                btnNext.className = "px-7 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-lg rounded-xl transition shadow-md cursor-pointer flex items-center gap-1";
+            } else {
+                btnNext.innerHTML = `다음 문제 ➡️`;
+                btnNext.className = "px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-lg rounded-xl transition shadow-md cursor-pointer flex items-center gap-1";
+            }
+
+            // Question Card HTML
+            const card = document.createElement('div');
+            card.className = "bg-white p-6 sm:p-10 rounded-3xl border-2 border-slate-200 shadow-xl transition";
+
+            let categoryBadge = "";
+            if (q.type === 'mcq_en') categoryBadge = `<span class="bg-blue-100 text-blue-800 text-xs font-bold px-3 py-1 rounded-full">객관식 • 영어 선택</span>`;
+            else if (q.type === 'mcq_ko') categoryBadge = `<span class="bg-indigo-100 text-indigo-800 text-xs font-bold px-3 py-1 rounded-full">객관식 • 뜻 선택</span>`;
+            else if (q.type === 'sa_en') categoryBadge = `<span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">주관식 • 영어 입력</span>`;
+            else categoryBadge = `<span class="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full">주관식 • 뜻 입력</span>`;
+
+            const existingAns = userAnswers[qNum] || "";
+
+            let bodyHTML = "";
+
+            if (q.type.startsWith('mcq')) {
+                const optionsHTML = q.options.map((opt, optIdx) => {
+                    const isChecked = (existingAns === opt);
+                    return `
+                        <label onclick="selectMcqOption(${qNum}, '${escapeHtml(opt)}')" 
+                            class="flex items-center p-4 rounded-2xl border-2 ${isChecked ? 'border-blue-600 bg-blue-50/70 shadow-sm' : 'border-slate-200 bg-white hover:bg-slate-50'} transition cursor-pointer group">
+                            <input type="radio" name="question_${qNum}" value="${escapeHtml(opt)}" ${isChecked ? 'checked' : ''}
+                                class="w-5 h-5 text-blue-600 focus:ring-blue-500 border-slate-300 pointer-events-none">
+                            <span class="ml-3 font-bold ${isChecked ? 'text-blue-700' : 'text-slate-500'} text-base mr-3">${optIdx + 1}.</span>
+                            <span class="text-slate-800 text-lg font-bold">${escapeHtml(opt)}</span>
+                        </label>
+                    `;
+                }).join('');
+
+                bodyHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-6">${optionsHTML}</div>`;
+            } else {
+                bodyHTML = `
+                    <div class="mt-6 flex flex-col sm:flex-row gap-3">
+                        <input type="text" id="input-q-${qNum}" value="${escapeHtml(existingAns)}"
+                            placeholder="${q.type === 'sa_en' ? '영어 단어를 입력하세요 (예: apple)' : '한국어 뜻을 입력하세요 (예: 사과)'}"
+                            onkeydown="handleSubjectiveKeyDown(event, ${qNum})"
+                            class="flex-grow text-xl px-5 py-4 rounded-2xl border-2 border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition font-semibold"
+                            autocomplete="off">
+                        <button type="button" onclick="submitSubjectiveAnswer(${qNum})"
+                            class="px-7 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg rounded-2xl transition shadow-md whitespace-nowrap cursor-pointer">
+                            정답 제출 ↵
+                        </button>
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div class="flex items-center justify-between gap-2 mb-4 pb-4 border-b border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-2xl bg-blue-600 text-white font-black flex items-center justify-center text-lg shadow-md shadow-blue-200">${qNum}</span>
+                        <span class="text-slate-400 font-bold text-sm">문제 번호</span>
+                    </div>
+                    ${categoryBadge}
+                </div>
+
+                <div class="my-6">
+                    <p class="text-xs text-slate-400 font-semibold mb-2">
+                        ${q.type === 'mcq_en' ? '다음 뜻에 해당하는 올바른 영어 단어를 고르세요.' : 
+                          q.type === 'mcq_ko' ? '다음 영어 단어의 올바른 한국어 뜻을 고르세요.' : 
+                          q.type === 'sa_en' ? '다음 뜻에 해당하는 영어 단어를 입력 후 [정답 제출] 버튼을 누르세요.' : '다음 영어 단어의 한국어 뜻을 입력 후 [정답 제출] 버튼을 누르세요.'}
+                    </p>
+                    <h3 class="text-3xl sm:text-4xl font-black text-slate-800 tracking-tight">
+                        ${q.type === 'mcq_en' || q.type === 'sa_en' ? `"${escapeHtml(q.prompt)}"` : `<span class="text-blue-600">${escapeHtml(q.prompt)}</span>`}
+                    </h3>
+                </div>
+
+                ${bodyHTML}
+                <div id="feedback-q-${qNum}" class="mt-4 text-base font-bold min-h-[24px]"></div>
+            `;
+
+            container.appendChild(card);
+
+            // Re-render feedback if answer exists
+            if (existingAns) {
+                showQuestionFeedback(qNum, existingAns);
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function selectMcqOption(qNum, value) {
+            userAnswers[qNum] = value.trim();
+            renderCurrentQuestion();
+        }
+
+        function handleSubjectiveKeyDown(event, qNum) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                submitSubjectiveAnswer(qNum);
+            }
+        }
+
+        function submitSubjectiveAnswer(qNum) {
+            const inputEl = document.getElementById(`input-q-${qNum}`);
+            if (!inputEl) return;
+
+            const val = inputEl.value.trim();
+            if (!val) {
+                const feedbackEl = document.getElementById(`feedback-q-${qNum}`);
+                if (feedbackEl) {
+                    feedbackEl.className = "mt-4 text-sm font-bold text-amber-700 bg-amber-50 p-3.5 rounded-2xl border border-amber-200";
+                    feedbackEl.innerText = "⚠️ 답안을 입력한 후 제출해 주세요.";
+                }
+                delete userAnswers[qNum];
+                return;
+            }
+
+            userAnswers[qNum] = val;
+            showQuestionFeedback(qNum, val);
+        }
+
+        function showQuestionFeedback(qNum, val) {
+            const feedbackEl = document.getElementById(`feedback-q-${qNum}`);
+            if (!feedbackEl) return;
+
+            const q = generatedQuestions.find(item => item.number === qNum);
+            if (!q) return;
+
+            let isCorrect = false;
+            if (q.type.startsWith('mcq')) {
+                isCorrect = (val.trim() === q.correctAnswer.trim());
+            } else if (q.type === 'sa_en') {
+                isCorrect = (val.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase());
+            } else {
+                isCorrect = evaluateKoreanAnswer(val, q.correctAnswer);
+            }
+
+            if (isCorrect) {
+                feedbackEl.className = "mt-4 text-base font-bold text-emerald-800 bg-emerald-50 p-4 rounded-2xl border border-emerald-200 flex items-center gap-2";
+                feedbackEl.innerHTML = "⭕ <strong>정답입니다!</strong> 잘하셨어요.";
+            } else {
+                feedbackEl.className = "mt-4 text-base font-bold text-rose-800 bg-rose-50 p-4 rounded-2xl border border-rose-200 flex items-center gap-2";
+                feedbackEl.innerHTML = `❌ <strong>틀렸습니다!</strong> (올바른 정답: <span class="underline text-slate-900 font-extrabold">${escapeHtml(q.correctAnswer)}</span>)`;
+            }
+        }
+
+        function nextQuestion() {
+            const qNum = generatedQuestions[currentQuestionIndex].number;
+            
+            if (currentQuestionIndex < 19) {
+                currentQuestionIndex++;
+                renderCurrentQuestion();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                confirmSubmit();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderCurrentQuestion();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function evaluateKoreanAnswer(userInput, targetAnswer) {
+            if (!userInput || !userInput.trim()) return false;
+            
+            const cleanUser = userInput.trim().replace(/\s+/g, '');
+            const cleanTarget = targetAnswer.trim().replace(/\s+/g, '');
+
+            if (cleanUser === cleanTarget) return true;
+
+            const sanitizedTarget = targetAnswer.replace(/[\(\)\[\];,~]/g, ' ');
+            const targetTokens = sanitizedTarget.split(/\s+/).filter(t => t.length > 0);
+            const cleanUserNoPunct = userInput.replace(/[\(\)\[\];,~]/g, '').trim();
+
+            for (let token of targetTokens) {
+                if (token === cleanUserNoPunct) return true;
+                if (cleanUserNoPunct.length >= 2 && token.includes(cleanUserNoPunct)) return true;
+            }
+
+            return false;
+        }
+
+        function confirmSubmit() {
+            const answeredCount = Object.keys(userAnswers).length;
+            if (answeredCount < 20) {
+                const unansweredCount = 20 - answeredCount;
+                showModal(
+                    "미작성 문제 존재", 
+                    `아직 풀지 않은 문제가 ${unansweredCount}개 있습니다. 이대로 최종 제출하시겠습니까?`,
+                    true,
+                    processSubmission
+                );
+            } else {
+                showModal(
+                    "시험 제출", 
+                    "20문제를 모두 완료했습니다. 답안을 최종 제출하시겠습니까?",
+                    true,
+                    processSubmission
+                );
+            }
+        }
+
+        function processSubmission() {
+            let correctCount = 0;
+            const results = [];
+
+            generatedQuestions.forEach((q) => {
+                const userAns = userAnswers[q.number] || "";
+                let isCorrect = false;
+
+                if (q.type.startsWith('mcq')) {
+                    isCorrect = (userAns.trim() === q.correctAnswer.trim());
+                } else if (q.type === 'sa_en') {
+                    isCorrect = (userAns.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase());
+                } else if (q.type === 'sa_ko') {
+                    isCorrect = evaluateKoreanAnswer(userAns, q.correctAnswer);
+                }
+
+                if (isCorrect) correctCount++;
+
+                results.push({
+                    question: q,
+                    userAns: userAns,
+                    isCorrect: isCorrect
+                });
+            });
+
+            showResultScreen(correctCount, results);
+        }
+
+        function showResultScreen(correctCount, results) {
+            const score = correctCount * 5;
+            
+            document.getElementById('screen-quiz').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('hidden');
+
+            document.getElementById('result-title').innerText = `${currentStudentName} 학생의 시험 결과`;
+            document.getElementById('result-score').innerText = `${score}점`;
+            document.getElementById('result-detail-text').innerText = `20문제 중 ${correctCount}문제 정답 (100점 만점)`;
+
+            const sheetPayload = {
+                timestamp: new Date().toLocaleString('ko-KR'),
+                studentName: currentStudentName,
+                score: score,
+                correctCount: correctCount,
+                totalQuestions: 20
+            };
+            sendResultToGoogleSheet(sheetPayload);
+
+            const badgeBg = document.getElementById('result-badge-bg');
+            if (score >= 80) badgeBg.className = "absolute top-0 left-0 w-full h-3 bg-emerald-500";
+            else if (score >= 50) badgeBg.className = "absolute top-0 left-0 w-full h-3 bg-amber-500";
+            else badgeBg.className = "absolute top-0 left-0 w-full h-3 bg-rose-500";
+
+            // 10문제 이하 (50점 이하) 맞힌 경우 '재도전하기' 버튼 표시
+            const retryBox = document.getElementById('retry-box');
+            if (correctCount <= 10) {
+                retryBox.classList.remove('hidden');
+            } else {
+                retryBox.classList.add('hidden');
+            }
+
+            // Render breakdown list
+            const breakdownContainer = document.getElementById('result-breakdown');
+            breakdownContainer.innerHTML = "";
+
+            results.forEach(({ question, userAns, isCorrect }) => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = `p-4 sm:p-5 rounded-2xl border ${isCorrect ? 'bg-emerald-50/50 border-emerald-200' : 'bg-rose-50/50 border-rose-200'}`;
+
+                const statusTag = isCorrect 
+                    ? `<span class="inline-flex items-center gap-1 font-black text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full text-sm">⭕ 정답 (+5점)</span>`
+                    : `<span class="inline-flex items-center gap-1 font-black text-rose-700 bg-rose-100 px-3 py-1 rounded-full text-sm">❌ 오답 (+0점)</span>`;
+
+                itemDiv.innerHTML = `
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="font-bold text-slate-800 text-base">Q${question.number}. [제시어: <span class="text-blue-600">${escapeHtml(question.prompt)}</span>]</span>
+                        </div>
+                        <div>${statusTag}</div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm pt-2 border-t border-slate-200/60">
+                        <div class="flex gap-2">
+                            <span class="font-bold text-slate-500 min-w-[70px]">제출한 답:</span>
+                            <span class="font-semibold ${isCorrect ? 'text-emerald-800' : 'text-rose-800'}">${userAns ? escapeHtml(userAns) : '<em class="text-slate-400">미작성</em>'}</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <span class="font-bold text-slate-500 min-w-[70px]">올바른 정답:</span>
+                            <span class="font-bold text-slate-800">${escapeHtml(question.correctAnswer)}</span>
+                        </div>
+                    </div>
+                `;
+
+                breakdownContainer.appendChild(itemDiv);
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function retryTest() {
+            startNewTest();
+        }
+
+        function restartTest() {
+            document.getElementById('screen-result').classList.add('hidden');
+            document.getElementById('screen-start').classList.remove('hidden');
+            document.getElementById('student-name-input').value = "";
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function sendResultToGoogleSheet(data) {
+            const statusEl = document.getElementById('sheet-save-status');
+            if (statusEl) {
+                statusEl.className = "mt-3 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-700 font-medium text-xs inline-flex items-center gap-1.5";
+                statusEl.innerHTML = `<span>⏳</span> 구글 시트에 성적을 저장 중입니다...`;
+            }
+
+            if (!GOOGLE_SHEET_URL) return;
+
+            fetch(GOOGLE_SHEET_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'text/plain'
+                },
+                body: JSON.stringify(data)
+            })
+            .then(() => {
+                if (statusEl) {
+                    statusEl.className = "mt-3 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 font-bold text-xs inline-flex items-center gap-1.5";
+                    statusEl.innerHTML = `<span>✅</span> 구글 시트에 성적이 저장되었습니다!`;
+                }
+            })
+            .catch((err) => {
+                console.error("Sheet save error:", err);
+                if (statusEl) {
+                    statusEl.className = "mt-3 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 font-medium text-xs inline-flex items-center gap-1.5";
+                    statusEl.innerHTML = `<span>⚠️</span> 구글 시트 저장 중 오류가 발생했습니다.`;
+                }
+            });
+        }
+    </script>
+</body>
+</html>
