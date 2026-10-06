@@ -15,6 +15,7 @@
 </head>
 <body class="min-h-screen text-slate-800 flex flex-col justify-between">
 
+    <!-- MODAL -->
     <div id="modal-backdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl transform transition-all border border-slate-200">
             <h3 id="modal-title" class="text-xl font-bold text-slate-800 mb-2">알림</h3>
@@ -28,6 +29,7 @@
     <!-- MAIN CONTAINER -->
     <div class="max-w-4xl mx-auto w-full p-4 sm:p-6 flex-grow">
 
+        <!-- START SCREEN -->
         <div id="screen-start" class="flex flex-col items-center justify-center min-h-[80vh] py-10">
             <div class="w-full max-w-xl bg-white p-8 sm:p-12 rounded-3xl shadow-xl border-2 border-slate-200 text-center">
                 <span class="inline-block px-4 py-1.5 bg-blue-100 text-blue-700 rounded-full text-sm font-bold mb-4">중학교 1학년 영어</span>
@@ -55,6 +57,7 @@
             </div>
         </div>
 
+        <!-- QUIZ SCREEN -->
         <div id="screen-quiz" class="hidden">
             <!-- Sticky Header -->
             <div class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm rounded-2xl p-4 mb-6">
@@ -97,6 +100,7 @@
             </div>
         </div>
 
+        <!-- RESULT SCREEN -->
         <div id="screen-result" class="hidden my-6">
             <!-- Result Summary Card -->
             <div class="bg-white rounded-3xl p-6 sm:p-10 shadow-xl border border-slate-200 mb-8 text-center relative overflow-hidden">
@@ -111,10 +115,10 @@
                     <div id="sheet-save-status" class="mt-3 text-xs font-semibold text-slate-500"></div>
                 </div>
 
-                <!-- Reward Container (Shown when correctCount >= 15) -->
-                <div id="reward-box" class="hidden mb-6 p-5 bg-emerald-50 border-2 border-emerald-300 rounded-2xl text-center shadow-md">
-                    <p class="text-2xl font-black text-emerald-800 mb-1">🎉 축하합니다! 🎉</p>
-                    <p class="text-xl font-extrabold text-emerald-700">수고했습니다!! 간식 받아서 집으로 가도 됩니다!! 🎁</p>
+                <!-- Reward Container (Shown when score >= 75 / correctCount >= 15) -->
+                <div id="reward-box" class="hidden mb-6 p-6 bg-emerald-50 border-2 border-emerald-400 rounded-2xl text-center shadow-lg transform transition-all">
+                    <p class="text-3xl font-black text-emerald-800 mb-2">🎉 축하합니다! 🎉</p>
+                    <p class="text-2xl font-extrabold text-emerald-700 leading-relaxed">수고했습니다!! 간식 받아서 집으로 가도 됩니다!! 🎁</p>
                 </div>
 
                 <!-- Retry Container (Shown when score <= 50) -->
@@ -144,85 +148,99 @@
     <script>
         const GOOGLE_SHEET_URL = "https://script.google.com/macros/s/AKfycbxFbqWJg2-Nu7eMQHw2uX1zeop8esnL_mjp_lPMwuynDHxtmUG2IBndNv4C6kIKZXagHA/exec";
 
+        // 단어 데이터베이스 (자주 쓰이는 한글 의미 보완)
         const WORD_DATABASE = [
-            { en: "ship", ko: "(타는) 배" },
-            { en: "shoe", ko: "구두" },
-            { en: "lunch", ko: "점심" },
+            { en: "ship", ko: "배, 선박" },
+            { en: "shoe", ko: "신발, 구두" },
+            { en: "lunch", ko: "점심, 점심 식사" },
             { en: "newspaper", ko: "신문" },
             { en: "airplane", ko: "비행기" },
             { en: "rain", ko: "비(가 오다)" },
-            { en: "land", ko: "땅[육지], 나라; 착륙하다" },
-            { en: "light", ko: "빛[불]; 밝은, 가벼운; 불을 붙이다" },
-            { en: "mind", ko: "마음; 언짢아하다" },
-            { en: "work", ko: "일[공부](하다), 작동하다; 작품" },
-            { en: "point", ko: "(요)점, 의견, 점수; 가리키다" },
-            { en: "thank", ko: "감사(하다)" },
-            { en: "take", ko: "데려[가져]가다, 필요로 하다, 받다, 잡다" },
-            { en: "learn", ko: "배우다" },
-            { en: "any", ko: "어떤 (것[사람]), 아무 (것)" },
+            { en: "land", ko: "땅, 육지, 나라; 착륙하다" },
+            { en: "light", ko: "빛, 불, 밝은, 가벼운" },
+            { en: "mind", ko: "마음, 언짢아하다" },
+            { en: "work", ko: "일, 공부, 작업; 일하다, 작동하다" },
+            { en: "point", ko: "점, 요점, 점수; 가리키다" },
+            { en: "thank", ko: "감사하다, 고마워하다" },
+            { en: "take", ko: "데려가다, 가져가다, 받다, 잡다" },
+            { en: "learn", ko: "배우다, 익히다" },
+            { en: "any", ko: "어떤, 아무" },
             { en: "last", ko: "지난, 마지막의; 계속되다" },
-            { en: "each", ko: "각각(의)" },
-            { en: "bad", ko: "나쁜" },
-            { en: "out", ko: "밖에[으로]" },
+            { en: "each", ko: "각각의, 각자" },
+            { en: "bad", ko: "나쁜, 나쁘다" },
+            { en: "out", ko: "밖에, 밖으로" },
             { en: "war", ko: "전쟁" },
             { en: "habit", ko: "습관" },
             { en: "space", ko: "공간, 우주" },
             { en: "winter", ko: "겨울" },
             { en: "science", ko: "과학" },
-            { en: "vacation", ko: "방학[휴가]" },
+            { en: "vacation", ko: "방학, 휴가" },
             { en: "library", ko: "도서관" },
-            { en: "call", ko: "전화하다, 부르다; 통화, 부름" },
-            { en: "play", ko: "놀다, 연주하다; 연극" },
-            { en: "head", ko: "머리; 향해 가다" },
-            { en: "face", ko: "얼굴; 직면하다" },
-            { en: "need", ko: "필요(하다); 욕구" },
-            { en: "tell", ko: "말하다" },
+            { en: "call", ko: "전화하다, 부르다" },
+            { en: "play", ko: "놀다, 연주하다, 경기하다" },
+            { en: "head", ko: "머리, 향하다" },
+            { en: "face", ko: "얼굴, 직면하다" },
+            { en: "need", ko: "필요하다, 필요" },
+            { en: "tell", ko: "말하다, 이야기하다" },
             { en: "meet", ko: "만나다" },
-            { en: "live", ko: "살다; 살아 있는" },
-            { en: "same", ko: "같은 (것[사람])" },
-            { en: "another", ko: "또 하나의 (것[사람]), 다른 (것[사람])" },
-            { en: "such", ko: "그러한, 그렇게[너무나]" },
-            { en: "well", ko: "잘; 건강한; 우물; 글쎄" },
+            { en: "live", ko: "살다, 살아있는" },
+            { en: "same", ko: "같은, 동일한" },
+            { en: "another", ko: "또 하나의, 다른" },
+            { en: "such", ko: "그러한, 그렇게" },
+            { en: "well", ko: "잘, 건강한" },
             { en: "nature", ko: "자연, 천성" },
-            { en: "dinner", ko: "저녁 식사" },
-            { en: "breakfast", ko: "아침 식사" },
+            { en: "dinner", ko: "저녁, 저녁 식사" },
+            { en: "breakfast", ko: "아침, 아침 식사" },
             { en: "information", ko: "정보" },
-            { en: "fish", ko: "물고기; 낚시질하다" },
-            { en: "care", ko: "돌봄, 주의, 관심을 갖다" },
-            { en: "store", ko: "가게; 비축[저장]하다" },
-            { en: "show", ko: "보여 주다; 쇼" },
-            { en: "study", ko: "공부[연구](하다)" },
-            { en: "smile", ko: "미소 (짓다)" },
-            { en: "watch", ko: "(지켜)보다; 시계" },
-            { en: "find", ko: "찾다[발견하다]" },
+            { en: "fish", ko: "물고기, 생선; 낚시하다" },
+            { en: "care", ko: "돌봄, 주의; 돌보다, 신경 쓰다" },
+            { en: "store", ko: "가게, 상점; 저장하다" },
+            { en: "show", ko: "보여주다; 쇼" },
+            { en: "study", ko: "공부하다, 연구하다" },
+            { en: "smile", ko: "미소, 미소 짓다" },
+            { en: "watch", ko: "지켜보다, 보다; 시계" },
+            { en: "find", ko: "찾다, 발견하다" },
             { en: "easy", ko: "쉬운" },
-            { en: "dear", ko: "사랑[친애]하는, 소중한" },
-            { en: "high", ko: "높은; 높이" },
-            { en: "really", ko: "진짜[정말]" },
+            { en: "dear", ko: "사랑하는, 친애하는" },
+            { en: "high", ko: "높은, 높이" },
+            { en: "really", ko: "진짜, 정말로" },
             { en: "door", ko: "문" },
             { en: "spring", ko: "봄, 용수철, 샘" },
             { en: "culture", ko: "문화" },
-            { en: "window", ko: "창(문)" },
+            { en: "window", ko: "창문" },
             { en: "afternoon", ko: "오후" },
             { en: "homework", ko: "숙제" },
-            { en: "try", ko: "노력하다, 시도(하다)" },
-            { en: "visit", ko: "방문(하다)" },
-            { en: "ask", ko: "묻다, 부탁하다" },
+            { en: "try", ko: "노력하다, 시도하다" },
+            { en: "visit", ko: "방문하다, 방문" },
+            { en: "ask", ko: "묻다, 요청하다, 부탁하다" },
             { en: "enjoy", ko: "즐기다" },
             { en: "clean", ko: "깨끗한; 청소하다" },
-            { en: "warm", ko: "따뜻한; 따뜻하게 하다" },
-            { en: "hot", ko: "더운[뜨거운], 매운" },
+            { en: "warm", ko: "따뜻한" },
+            { en: "hot", ko: "더운, 뜨거운, 매운" },
             { en: "famous", ko: "유명한" },
             { en: "every", ko: "모든, ~마다" },
-            { en: "also", ko: "~도" }
+            { en: "also", ko: "~도, 또한" }
         ];
+
+        // 영어 동의어 / 유의어 사전 (주관식 영어 채점용)
+        const ENGLISH_SYNONYMS = {
+            "tell": ["tell", "speak", "say", "talk"],
+            "shoe": ["shoe", "shoes"],
+            "ship": ["ship", "boat"],
+            "store": ["store", "shop"],
+            "call": ["call", "phone"],
+            "find": ["find", "discover"],
+            "try": ["try", "attempt"],
+            "dinner": ["dinner", "supper"],
+            "start": ["start", "begin"]
+        };
 
         let currentStudentName = "";
         let generatedQuestions = [];
         let userAnswers = {};
         let currentQuestionIndex = 0;
 
-        // 강력한 무작위 난수 기반 셔플 알고리즘 (crypto 난수 활용 + 다중 패스)
+        // 암호학적 난수 기반 다중 패스 셔플 함수
         function shuffleArray(array) {
             const arr = [...array];
             
@@ -235,7 +253,7 @@
                 return Math.floor(Math.random() * (max + 1));
             };
 
-            for (let pass = 0; pass < 3; pass++) {
+            for (let pass = 0; pass < 4; pass++) {
                 for (let i = arr.length - 1; i > 0; i--) {
                     const j = getRandomInt(i);
                     [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -363,13 +381,13 @@
             const q = generatedQuestions[currentQuestionIndex];
             const qNum = q.number;
 
-            // Update Progress Header
+            // Header Progress
             document.getElementById('question-step-badge').innerText = `${qNum} / 20 문제`;
             document.getElementById('progress-text').innerText = `${qNum} / 20 문제 진행 중`;
             const percentage = (qNum / 20) * 100;
             document.getElementById('progress-bar').style.width = `${percentage}%`;
 
-            // Update Nav Buttons
+            // Navigation Buttons State
             const btnPrev = document.getElementById('btn-prev-q');
             btnPrev.disabled = (currentQuestionIndex === 0);
 
@@ -382,7 +400,6 @@
                 btnNext.className = "px-7 py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-lg rounded-xl transition shadow-md cursor-pointer flex items-center gap-1";
             }
 
-            // Question Card HTML
             const card = document.createElement('div');
             card.className = "bg-white p-6 sm:p-10 rounded-3xl border-2 border-slate-200 shadow-xl transition";
 
@@ -393,7 +410,6 @@
             else categoryBadge = `<span class="bg-purple-100 text-purple-800 text-xs font-bold px-3 py-1 rounded-full">주관식 • 뜻 입력</span>`;
 
             const existingAns = userAnswers[qNum] || "";
-
             let bodyHTML = "";
 
             if (q.type.startsWith('mcq')) {
@@ -415,7 +431,7 @@
                 bodyHTML = `
                     <div class="mt-6 flex flex-col sm:flex-row gap-3">
                         <input type="text" id="input-q-${qNum}" value="${escapeHtml(existingAns)}"
-                            placeholder="${q.type === 'sa_en' ? '영어 단어를 입력하세요 (예: apple)' : '한국어 뜻을 입력하세요 (예: 사과)'}"
+                            placeholder="${q.type === 'sa_en' ? '영어 단어를 입력하세요 (예: tell, speak)' : '한국어 뜻을 입력하세요 (예: 방문하다, 방문)'}"
                             onkeydown="handleSubjectiveKeyDown(event, ${qNum})"
                             class="flex-grow text-xl px-5 py-4 rounded-2xl border-2 border-slate-300 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 outline-none transition font-semibold"
                             autocomplete="off">
@@ -453,7 +469,6 @@
 
             container.appendChild(card);
 
-            // Re-render feedback if answer exists
             if (existingAns) {
                 showQuestionFeedback(qNum, existingAns);
             }
@@ -499,6 +514,74 @@
             showQuestionFeedback(qNum, val);
         }
 
+        // 영어 주관식 정답 평가 함수 (유의어/동의어 및 복수형 유연 판정)
+        function evaluateEnglishAnswer(userInput, targetAnswer) {
+            if (!userInput || !userInput.trim()) return false;
+            
+            const userClean = userInput.trim().toLowerCase();
+            const targetClean = targetAnswer.trim().toLowerCase();
+
+            // 1. 일치하는 경우
+            if (userClean === targetClean) return true;
+
+            // 2. 단수 / 복수 변형 인정 (예: shoe <-> shoes)
+            if (userClean + "s" === targetClean || targetClean + "s" === userClean) return true;
+
+            // 3. 등록된 동의어 검사 (예: tell - speak, say, talk)
+            const synonyms = ENGLISH_SYNONYMS[targetClean];
+            if (synonyms && synonyms.includes(userClean)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        // 지능형 한국어 주관식 정답 채점 로직 (괄호, 대괄호, 쉼표 등 자동 확장 처리)
+        function evaluateKoreanAnswer(userInput, targetAnswer) {
+            if (!userInput || !userInput.trim()) return false;
+
+            const cleanUser = userInput.trim().replace(/[\s\(\)\[\];,~]/g, '').toLowerCase();
+            if (!cleanUser) return false;
+
+            const candidates = new Set();
+            candidates.add(targetAnswer.replace(/[\s\(\)\[\];,~]/g, '').toLowerCase());
+
+            function expandParentheses(str) {
+                const withoutParen = str.replace(/\([^)]*\)/g, '');
+                const withParenContent = str.replace(/[\(\)]/g, '');
+                return [withoutParen, withParenContent];
+            }
+
+            function expandBrackets(str) {
+                const withoutBracket = str.replace(/\[[^\]]*\]/g, '');
+                const withBracketContent = str.replace(/[\[\]]/g, '');
+                const bracketMatches = str.match(/\[([^\]]+)\]/g);
+                const insideBrackets = bracketMatches ? bracketMatches.map(m => m.replace(/[\[\]]/g, '')) : [];
+                return [withoutBracket, withBracketContent, ...insideBrackets];
+            }
+
+            const parts = targetAnswer.split(/[;,]/);
+
+            parts.forEach(part => {
+                const bracketExpansions = expandBrackets(part);
+                bracketExpansions.forEach(bPart => {
+                    const parenExpansions = expandParentheses(bPart);
+                    parenExpansions.forEach(pPart => {
+                        const cleaned = pPart.replace(/[\s\(\)\[\];,~]/g, '').toLowerCase();
+                        if (cleaned) candidates.add(cleaned);
+                    });
+                });
+            });
+
+            if (candidates.has(cleanUser)) return true;
+
+            for (let candidate of candidates) {
+                if (candidate === cleanUser) return true;
+            }
+
+            return false;
+        }
+
         function showQuestionFeedback(qNum, val) {
             const feedbackEl = document.getElementById(`feedback-q-${qNum}`);
             if (!feedbackEl) return;
@@ -510,7 +593,7 @@
             if (q.type.startsWith('mcq')) {
                 isCorrect = (val.trim() === q.correctAnswer.trim());
             } else if (q.type === 'sa_en') {
-                isCorrect = (val.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase());
+                isCorrect = evaluateEnglishAnswer(val, q.correctAnswer);
             } else {
                 isCorrect = evaluateKoreanAnswer(val, q.correctAnswer);
             }
@@ -540,56 +623,6 @@
                 renderCurrentQuestion();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             }
-        }
-
-        // 지능형 한국어 주관식 정답 채점 로직 (괄호, 대괄호, 쉼표 등 자동 확장 처리)
-        function evaluateKoreanAnswer(userInput, targetAnswer) {
-            if (!userInput || !userInput.trim()) return false;
-
-            const cleanUser = userInput.trim().replace(/[\s\(\)\[\];,~]/g, '').toLowerCase();
-            if (!cleanUser) return false;
-
-            const candidates = new Set();
-
-            // 1. 원본 기준 특수문자 제거 버전 추가
-            candidates.add(targetAnswer.replace(/[\s\(\)\[\];,~]/g, '').toLowerCase());
-
-            function expandParentheses(str) {
-                const withoutParen = str.replace(/\([^)]*\)/g, '');
-                const withParenContent = str.replace(/[\(\)]/g, '');
-                return [withoutParen, withParenContent];
-            }
-
-            function expandBrackets(str) {
-                const withoutBracket = str.replace(/\[[^\]]*\]/g, '');
-                const withBracketContent = str.replace(/[\[\]]/g, '');
-                const bracketMatches = str.match(/\[([^\]]+)\]/g);
-                const insideBrackets = bracketMatches ? bracketMatches.map(m => m.replace(/[\[\]]/g, '')) : [];
-                return [withoutBracket, withBracketContent, ...insideBrackets];
-            }
-
-            // 쉼표(,) 및 세미콜론(;) 단위 분할 후 각 키워드별 파생어 생성
-            const parts = targetAnswer.split(/[;,]/);
-
-            parts.forEach(part => {
-                const bracketExpansions = expandBrackets(part);
-                bracketExpansions.forEach(bPart => {
-                    const parenExpansions = expandParentheses(bPart);
-                    parenExpansions.forEach(pPart => {
-                        const cleaned = pPart.replace(/[\s\(\)\[\];,~]/g, '').toLowerCase();
-                        if (cleaned) candidates.add(cleaned);
-                    });
-                });
-            });
-
-            // 정답 후보군에 포함되는지 확인
-            if (candidates.has(cleanUser)) return true;
-
-            for (let candidate of candidates) {
-                if (candidate === cleanUser) return true;
-            }
-
-            return false;
         }
 
         function confirmSubmit() {
@@ -623,7 +656,7 @@
                 if (q.type.startsWith('mcq')) {
                     isCorrect = (userAns.trim() === q.correctAnswer.trim());
                 } else if (q.type === 'sa_en') {
-                    isCorrect = (userAns.trim().toLowerCase() === q.correctAnswer.trim().toLowerCase());
+                    isCorrect = evaluateEnglishAnswer(userAns, q.correctAnswer);
                 } else if (q.type === 'sa_ko') {
                     isCorrect = evaluateKoreanAnswer(userAns, q.correctAnswer);
                 }
@@ -650,6 +683,7 @@
             document.getElementById('result-score').innerText = `${score}점`;
             document.getElementById('result-detail-text').innerText = `20문제 중 ${correctCount}문제 정답 (100점 만점)`;
 
+            // 구글 시트 전송
             const sheetPayload = {
                 timestamp: new Date().toLocaleString('ko-KR'),
                 studentName: currentStudentName,
@@ -659,28 +693,33 @@
             };
             sendResultToGoogleSheet(sheetPayload);
 
+            // 점수 색상 배지 설정
             const badgeBg = document.getElementById('result-badge-bg');
             if (score >= 80) badgeBg.className = "absolute top-0 left-0 w-full h-3 bg-emerald-500";
             else if (score >= 50) badgeBg.className = "absolute top-0 left-0 w-full h-3 bg-amber-500";
             else badgeBg.className = "absolute top-0 left-0 w-full h-3 bg-rose-500";
 
-            // 15문제 이상 (75점 이상) 맞힌 경우 간식 배부 축하 메시지 표시
+            // 75점 이상 (15문제 이상) 정답 시 메시지 박스 표시 보장
             const rewardBox = document.getElementById('reward-box');
-            if (correctCount >= 15) {
+            if (score >= 75 || correctCount >= 15) {
                 rewardBox.classList.remove('hidden');
+                rewardBox.style.display = 'block';
             } else {
                 rewardBox.classList.add('hidden');
+                rewardBox.style.display = 'none';
             }
 
-            // 10문제 이하 (50점 이하) 맞힌 경우 '재도전하기' 버튼 표시
+            // 50점 이하 (10문제 이하) 정답 시 재도전 상자 표시
             const retryBox = document.getElementById('retry-box');
-            if (correctCount <= 10) {
+            if (score <= 50 || correctCount <= 10) {
                 retryBox.classList.remove('hidden');
+                retryBox.style.display = 'block';
             } else {
                 retryBox.classList.add('hidden');
+                retryBox.style.display = 'none';
             }
 
-            // Render breakdown list
+            // Breakdown List
             const breakdownContainer = document.getElementById('result-breakdown');
             breakdownContainer.innerHTML = "";
 
@@ -716,10 +755,6 @@
             });
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-
-        function retryTest() {
-            startNewTest();
         }
 
         function restartTest() {
